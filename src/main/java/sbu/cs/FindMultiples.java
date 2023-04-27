@@ -1,42 +1,65 @@
 package sbu.cs;
 
-/*
-    In this exercise, you must write a multithreaded program that finds all
-    integers in the range [1, n] that are divisible by 3, 5, or 7. Return the
-    sum of all unique integers as your answer.
-    Note that an integer such as 15 (which is a multiple of 3 and 5) is only
-    counted once.
+import java.util.HashSet;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-    The Positive integer n > 0 is given to you as input. Create as many threads as
-    you need to solve the problem. You can use a Thread Pool for bonus points.
+public class FindMultiples {
 
-    Example:
-    Input: n = 10
-    Output: sum = 40
-    Explanation: Numbers in the range [1, 10] that are divisible by 3, 5, or 7 are:
-    3, 5, 6, 7, 9, 10. The sum of these numbers is 40.
+    private static class Task implements Runnable {
+        private static final Set<Integer> multiples = new HashSet<>();
+        private final int num;
 
-    Use the tests provided in the test folder to ensure your code works correctly.
- */
+        public Task(int num) {
+            this.num = num;
+        }
 
-public class FindMultiples
-{
+        @Override
+        public void run() {
+            if (num % 3 == 0 || num % 5 == 0 || num % 7 == 0) {
+                synchronized (multiples) {
+                    multiples.add(num);
+                }
+            }
+        }
+    }
 
-    // TODO create the required multithreading class/classes using your preferred method.
-
-
-    /*
-    The getSum function should be called at the start of your program.
-    New Threads and tasks should be created here.
-    */
     public int getSum(int n) {
         int sum = 0;
 
-        // TODO
+        // Create a thread pool with 10 threads
+        ExecutorService executor = Executors.newFixedThreadPool(10);
+
+        // Create tasks for each multiple of 3, 5, or 7 in the range [1, n]
+        for (int i = 1; i <= n; i++) {
+            if (i % 3 == 0 || i % 5 == 0 || i % 7 == 0) {
+                Runnable task = new Task(i);
+                executor.submit(task);
+            }
+        }
+
+        // Wait for all tasks to finish
+        executor.shutdown();
+        try {
+            executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        // Sum up the unique multiples
+        for (int i : Task.multiples) {
+            sum += i;
+        }
 
         return sum;
     }
 
     public static void main(String[] args) {
+        FindMultiples finder = new FindMultiples();
+        int n = 10;
+        int sum = finder.getSum(n);
+        System.out.println("Sum of multiples of 3, 5, or 7 in the range [1, " + n + "]: " + sum);
     }
 }
